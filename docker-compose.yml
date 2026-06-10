@@ -3,6 +3,7 @@ services:
     image: postgres:16
     container_name: db-study-postgres
     restart: unless-stopped
+    command: ["postgres", "-c", "max_pred_locks_per_transaction=256"]
     environment:
       POSTGRES_USER: dweb
       POSTGRES_PASSWORD: 1234

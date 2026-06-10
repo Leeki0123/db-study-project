@@ -68,7 +68,7 @@ db-study-project/
 │   ├── normalization.md
 │   └── benchmark_result.md
 └── ppt/
-    └── final_presentation.pptx
+    └── 스터디_모집_서비스_DB과제.pptx
 ```
 
 ## 실행 방법
@@ -150,6 +150,15 @@ npm run dev
 
 RC 대비 Serializable TPS 약 28~30% 낮음. 상세 분석은 [`docs/benchmark_result.md`](docs/benchmark_result.md) 참고.
 
+### Abort율 0%에 대하여
+
+두 격리 수준 모두 Abort율이 0%로 측정된 이유는 워크로드 SQL의 설계 방식 때문이다.
+
+- **조건부 INSERT**: `WHERE cm.member_count < tg.max_members AND NOT EXISTS (...)` 조건으로 정원 초과나 중복 참여를 사전에 걸러낸다.
+- **`ON CONFLICT DO NOTHING`**: 혹시 경쟁 조건에서 중복 키가 발생해도 에러가 아닌 무시(skip)로 처리된다.
+
+이 두 장치 덕분에 pgbench 관점에서 트랜잭션 실패가 기록되지 않는다. Serializable이라도 충돌이 에러로 노출되지 않아 Abort율 차이를 직접 확인할 수 없지만, SSI(Serializable Snapshot Isolation) 오버헤드로 인한 TPS 감소(약 28~30%)는 측정된다.
+
 ## 발표 자료
 
-`ppt/final_presentation.pptx`
+`ppt/스터디_모집_서비스_DB과제.pptx`

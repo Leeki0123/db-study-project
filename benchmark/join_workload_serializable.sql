@@ -1,5 +1,5 @@
-\set user_id random(1, 20)
-\set group_id random(1, 5)
+\set user_id random(1, 10000)
+\set group_id random(1, 100)
 
 BEGIN;
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
@@ -33,4 +33,3 @@ SELECT COUNT(*) AS inserted_count
 FROM insert_member;
 
 COMMIT;
-
