@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>스터디 모집 서비스</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="page-header">
+        <p class="eyebrow">DB Study Project</p>
+        <h1>스터디 모집 서비스</h1>
+        <p class="intro">
+          사용자를 선택한 뒤 스터디를 만들거나, 목록에서 참여와 취소를 할 수
+          있습니다.
+        </p>
+      </header>
+
+      <section class="notice-card">
+        <div>
+          <strong>서버 상태</strong>
+          <p id="healthText">확인 중...</p>
+        </div>
+        <div>
+          <strong>안내</strong>
+          <p id="noticeText">데이터를 불러오는 중입니다.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <div>
+            <h2>1. 현재 사용자 선택</h2>
+            <p>이 사용자가 스터디에 참여하거나 새 스터디를 만듭니다.</p>
+          </div>
+          <button id="refreshButton" type="button">새로고침</button>
+        </div>
+
+        <div class="form-grid">
+          <label class="field">
+            <span>사용자 목록</span>
+            <select id="currentUserSelect"></select>
+          </label>
+        </div>
+
+        <div id="currentUserInfo" class="simple-box"></div>
+
+        <form id="userForm" class="stack-form">
+          <h3>새 사용자 등록</h3>
+          <label class="field">
+            <span>이름</span>
+            <input id="userName" type="text" required />
+          </label>
+          <label class="field">
+            <span>이메일</span>
+            <input id="userEmail" type="email" required />
+          </label>
+          <button type="submit">사용자 등록</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <div>
+            <h2>2. 스터디 만들기</h2>
+            <p>선택한 사용자가 스터디 생성자가 됩니다.</p>
+          </div>
+        </div>
+
+        <form id="groupForm" class="stack-form">
+          <label class="field">
+            <span>스터디 제목</span>
+            <input id="groupTitle" type="text" required />
+          </label>
+          <label class="field">
+            <span>설명</span>
+            <textarea
+              id="groupDescription"
+              rows="4"
+              placeholder="예: 매주 수요일 저녁 8시에 SQL 문제 풀이"
+            ></textarea>
+          </label>
+          <label class="field">
+            <span>최대 인원</span>
+            <input id="maxMembers" type="number" min="2" max="100" value="4" required />
+          </label>
+          <button type="submit">스터디 생성</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <div>
+            <h2>3. 스터디 목록</h2>
+            <p>목록에서 자세히 보거나 바로 참여할 수 있습니다.</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <label class="field">
+            <span>검색</span>
+            <input id="searchInput" type="search" placeholder="제목 또는 설명 검색" />
+          </label>
+          <label class="field">
+            <span>참여 모드</span>
+            <select id="isolationLevel">
+              <option value="READ COMMITTED">READ COMMITTED</option>
+              <option value="SERIALIZABLE">SERIALIZABLE</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="studyList" class="study-list"></div>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
