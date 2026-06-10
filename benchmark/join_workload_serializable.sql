@@ -1,5 +1,5 @@
-\setrandom user_id 1 20
-\setrandom group_id 1 5
+\set user_id random(1, 20)
+\set group_id random(1, 5)
 
 BEGIN;
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;

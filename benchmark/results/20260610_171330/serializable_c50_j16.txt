@@ -1,0 +1,13 @@
+pgbench (18.3 (Homebrew), server 16.13 (Debian 16.13-1.pgdg13+1))
+transaction type: /Users/ihyeonseo/Desktop/db_study/benchmark/join_workload_serializable.sql
+scaling factor: 1
+query mode: simple
+number of clients: 50
+number of threads: 16
+maximum number of tries: 1
+duration: 60 s
+number of transactions actually processed: 329361
+number of failed transactions: 0 (0.000%)
+latency average = 9.091 ms
+initial connection time = 142.444 ms
+tps = 5500.137603 (without initial connection time)
