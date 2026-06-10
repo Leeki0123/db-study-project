@@ -126,4 +126,3 @@ chmod +x run_benchmark.sh
 - [`docs/schema_design.md`](docs/schema_design.md) — 스키마 설계 및 트랜잭션 처리 흐름
 - [`docs/normalization.md`](docs/normalization.md) — 정규화 과정 (비정규화 예시 → 이상 현상 → 3NF)
 - [`docs/benchmark_result.md`](docs/benchmark_result.md) — 벤치마킹 결과 및 분석
-- [`ppt/스터디_모집_서비스_DB과제.pptx`](ppt/스터디_모집_서비스_DB과제.pptx) — 발표 자료
