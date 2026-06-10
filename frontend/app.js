@@ -147,6 +147,79 @@ const getVisibleGroups = () => {
   });
 };
 
+const renderGroupCard = (group, currentUser) => {
+  const joined = currentUser ? isMember(group, currentUser.userId) : false;
+  const isFull = group.memberCount >= group.maxMembers;
+  const isExpanded = state.expandedGroupId === group.groupId;
+
+  return `
+    <article class="study-item">
+      <h3>${escapeHtml(group.title)}</h3>
+      <p class="study-meta">
+        생성자: ${escapeHtml(group.creatorName)}<br />
+        인원: ${group.memberCount} / ${group.maxMembers}<br />
+        설명: ${escapeHtml(group.description || "설명이 없습니다.")}
+      </p>
+
+      <div class="study-actions">
+        <button
+          type="button"
+          class="secondary"
+          data-action="toggle"
+          data-group-id="${group.groupId}"
+        >
+          ${isExpanded ? "상세 닫기" : "상세 보기"}
+        </button>
+        ${
+          joined
+            ? `
+              <button
+                type="button"
+                class="danger"
+                data-action="leave"
+                data-group-id="${group.groupId}"
+              >
+                참여 취소
+              </button>
+            `
+            : `
+              <button
+                type="button"
+                data-action="join"
+                data-group-id="${group.groupId}"
+                ${!currentUser || isFull ? "disabled" : ""}
+              >
+                ${isFull ? "정원 마감" : "참여하기"}
+              </button>
+            `
+        }
+      </div>
+
+      ${
+        isExpanded
+          ? `
+            <div class="study-detail">
+              <strong>참여자 목록</strong>
+              <ul class="member-list">
+                ${group.members
+                  .map(
+                    (member) => `
+                      <li>
+                        ${escapeHtml(member.name)}
+                        ${member.userId === group.creatorId ? "(생성자)" : ""}
+                      </li>
+                    `
+                  )
+                  .join("")}
+              </ul>
+            </div>
+          `
+          : ""
+      }
+    </article>
+  `;
+};
+
 const renderStudyList = () => {
   const currentUser = getCurrentUser();
   const groups = getVisibleGroups();
@@ -157,84 +230,26 @@ const renderStudyList = () => {
     return;
   }
 
-  elements.studyList.innerHTML = groups
-    .map((group) => {
-      const joined = currentUser ? isMember(group, currentUser.userId) : false;
-      const isFull = group.memberCount >= group.maxMembers;
-      const isExpanded = state.expandedGroupId === group.groupId;
+  if (!currentUser) {
+    elements.studyList.innerHTML = groups.map((g) => renderGroupCard(g, null)).join("");
+    return;
+  }
 
-      return `
-        <article class="study-item">
-          <h3>${escapeHtml(group.title)}</h3>
-          <p class="study-meta">
-            생성자: ${escapeHtml(group.creatorName)}<br />
-            인원: ${group.memberCount} / ${group.maxMembers}<br />
-            설명: ${escapeHtml(group.description || "설명이 없습니다.")}
-          </p>
+  const joined = groups.filter((g) => isMember(g, currentUser.userId));
+  const notJoined = groups.filter((g) => !isMember(g, currentUser.userId));
 
-          <div class="study-actions">
-            <button
-              type="button"
-              class="secondary"
-              data-action="toggle"
-              data-group-id="${group.groupId}"
-            >
-              ${isExpanded ? "상세 닫기" : "상세 보기"}
-            </button>
-            ${
-              joined
-                ? `
-                  <button
-                    type="button"
-                    class="danger"
-                    data-action="leave"
-                    data-group-id="${group.groupId}"
-                  >
-                    참여 취소
-                  </button>
-                `
-                : `
-                  <button
-                    type="button"
-                    data-action="join"
-                    data-group-id="${group.groupId}"
-                    ${!currentUser || isFull ? "disabled" : ""}
-                  >
-                    ${isFull ? "정원 마감" : "참여하기"}
-                  </button>
-                `
-            }
-          </div>
+  const section = (title, list, emptyText) => `
+    <div class="study-section">
+      <h3 class="study-section-title">${title} <span class="study-section-count">${list.length}</span></h3>
+      ${list.length === 0
+        ? `<p class="empty-text">${emptyText}</p>`
+        : list.map((g) => renderGroupCard(g, currentUser)).join("")}
+    </div>
+  `;
 
-          ${
-            isExpanded
-              ? `
-                <div class="study-detail">
-                  <strong>참여자 목록</strong>
-                  <ul class="member-list">
-                    ${group.members
-                      .map(
-                        (member) => `
-                          <li>
-                            ${escapeHtml(member.name)}
-                            ${
-                              member.userId === group.creatorId
-                                ? "(생성자)"
-                                : ""
-                            }
-                          </li>
-                        `
-                      )
-                      .join("")}
-                  </ul>
-                </div>
-              `
-              : ""
-          }
-        </article>
-      `;
-    })
-    .join("");
+  elements.studyList.innerHTML =
+    section("참여 중인 스터디", joined, "참여 중인 스터디가 없습니다.") +
+    section("참여 가능한 스터디", notJoined, "참여 가능한 스터디가 없습니다.");
 };
 
 const renderAll = () => {
