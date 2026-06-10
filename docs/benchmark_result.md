@@ -91,10 +91,11 @@ Serializable은 SSI 방식으로 트랜잭션 간 의존 관계를 추적하는
 
 ## 결론
 
-- 정원 초과 방지 목적이라면 `ON CONFLICT DO NOTHING` 설계 하에서
-  두 격리 수준 모두 데이터 무결성을 지킬 수 있다.
-- 순수 성능 측면에서 Read Committed가 약 28~30% 유리하다.
-- `ON CONFLICT` 없이 엄격한 충돌 감지를 DB에 위임하는 구조라면
-  Serializable의 Abort율 차이가 더 명확하게 나타날 것으로 예상된다.
-
-원본 결과 파일: `benchmark/results/20260610_171330/`
+- `ON CONFLICT DO NOTHING`은 복합 PK `(group_id, user_id)` 충돌만 방지한다.
+  정원 조건(`member_count < max_members`)을 직렬화하지는 않으므로,
+  Read Committed에서는 두 트랜잭션이 동시에 정원 여유를 확인하고 모두 삽입하면 정원 초과가 발생할 수 있다.
+- Serializable은 SSI를 통해 이 경쟁 조건(Write Skew / Phantom)을 감지하고 한 쪽을 Abort시켜 정원 초과를 방지한다.
+- 순수 TPS 측면에서 Read Committed가 약 28~30% 높다.
+- 실제 API(`groupService.js`)에서는 `SELECT ... FOR UPDATE`로 스터디 행에 잠금을 걸어
+  두 격리 수준 모두 정원 초과를 방지한다. 벤치마크 워크로드는 잠금 없는 단일 SQL로 구성해
+  격리 수준 간 SSI 오버헤드 차이를 측정하는 데 집중했다.

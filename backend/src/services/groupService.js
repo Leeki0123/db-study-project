@@ -47,6 +47,7 @@ export const joinStudyGroup = async ({ groupId, userId, isolationLevel }) => {
         SELECT group_id, max_members
         FROM study_groups
         WHERE group_id = $1
+        FOR UPDATE
       `,
       [groupId]
     );

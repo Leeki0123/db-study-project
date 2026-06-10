@@ -90,7 +90,9 @@ npm run dev
 
 ### 프론트엔드
 
-`frontend/index.html`을 브라우저에서 직접 열거나 `http://localhost:3000`으로 접속한다.
+백엔드가 실행 중인 상태에서 `http://localhost:3000`으로 접속한다.
+프론트엔드는 `/health`, `/users`, `/groups` 등 절대 경로로 API를 호출하므로
+`frontend/index.html`을 파일로 직접 열면 동작하지 않는다.
 
 ## API
 
