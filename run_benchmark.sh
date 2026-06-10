@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
@@ -7,7 +6,6 @@ RESULT_DIR="$ROOT_DIR/benchmark/results/$(date +%Y%m%d_%H%M%S)"
 
 if [[ -f "$ROOT_DIR/.env" ]]; then
     set -a
-    # shellcheck disable=SC1091
     source "$ROOT_DIR/.env"
     set +a
 fi
@@ -43,7 +41,8 @@ run_case() {
                 -n \
                 -c "$client_count" \
                 -j "$worker_count" \
-                -T "$DURATION" | tee "$output_file"
+                -T "$DURATION" \
+                | tee "$output_file"
         done
     done
 }
@@ -51,5 +50,5 @@ run_case() {
 run_case "read_committed" "$ROOT_DIR/benchmark/join_workload.sql"
 run_case "serializable" "$ROOT_DIR/benchmark/join_workload_serializable.sql"
 
-echo
+echo ""
 echo "Benchmark complete. Results are stored in: $RESULT_DIR"

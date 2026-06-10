@@ -9,12 +9,31 @@
 
 ## Abort율 0%에 대하여
 
-두 격리 수준 모두 Abort율이 0%로 측정됐다. 이는 워크로드 SQL의 설계 방식 때문이다.
+두 격리 수준 모두 Abort율이 0%로 측정됐다.
+이는 워크로드 SQL의 설계 방식 때문이다.
 
-1. **조건부 INSERT**: `WHERE cm.member_count < tg.max_members AND NOT EXISTS (...)` 조건으로 정원 초과와 중복 참여를 INSERT 실행 전에 걸러낸다.
-2. **`ON CONFLICT DO NOTHING`**: 경쟁 조건에서 복합 PK 충돌이 발생하더라도 에러가 아닌 무시(skip)로 처리된다.
+**원인 1 — 조건부 INSERT**
 
-이 두 장치 덕분에 pgbench 관점에서 트랜잭션 실패(abort)가 기록되지 않는다. Serializable 격리 수준이라도 충돌이 에러로 노출되지 않으므로 Abort율 수치 차이는 나타나지 않는다. 그러나 Serializable의 SSI(Serializable Snapshot Isolation) 처리 오버헤드는 TPS 감소(약 28~30%)로 확인된다.
+```sql
+WHERE cm.member_count < tg.max_members
+  AND NOT EXISTS (
+      SELECT 1 FROM study_members sm
+      WHERE sm.group_id = :group_id AND sm.user_id = :user_id
+  )
+```
+
+정원 초과와 중복 참여를 INSERT 실행 전에 걸러낸다.
+조건이 거짓이면 INSERT 자체가 실행되지 않으므로 트랜잭션은 항상 성공한다.
+
+**원인 2 — `ON CONFLICT DO NOTHING`**
+
+경쟁 조건에서 복합 PK `(group_id, user_id)` 충돌이 발생하더라도
+에러가 아닌 무시(skip)로 처리된다.
+pgbench 입장에서 이 트랜잭션은 실패가 아니다.
+
+이 두 장치 덕분에 Serializable 격리 수준에서도 Abort율 수치 차이가 나타나지 않는다.
+그러나 Serializable의 SSI(Serializable Snapshot Isolation) 처리 오버헤드는
+TPS 감소(약 28~30%)로 확인된다.
 
 ## 전체 결과
 
@@ -58,19 +77,24 @@
 
 - **TPS**: Read Committed가 Serializable 대비 일관되게 약 28~30% 높다.
 - **Latency**: 클라이언트 수 100 기준으로 RC는 12~15ms, Serializable은 18ms 수준이다.
-- **Worker 수 영향**: 클라이언트 10에서는 worker 수를 늘려도 TPS 향상이 없다. 클라이언트 50~100에서는 worker 8 전후에서 TPS가 가장 높다.
+- **Worker 수 영향**: 클라이언트 10에서는 worker 수를 늘려도 TPS 향상이 없다.
+  클라이언트 50~100에서는 worker 8 전후에서 TPS가 가장 높다.
 - **Abort율**: 위 섹션에서 설명한 이유로 양쪽 모두 0%이다.
 
 ## 해석
 
-Read Committed는 각 쿼리 실행 시점의 커밋된 데이터를 읽으며 충돌 감지 오버헤드가 없어 처리량이 높다.
+Read Committed는 각 쿼리 실행 시점의 커밋된 데이터를 읽으며
+충돌 감지 오버헤드가 없어 처리량이 높다.
 
-Serializable은 SSI 방식으로 트랜잭션 간 의존 관계를 추적하는 추가 작업이 발생해 TPS가 낮고 Latency가 높다.
+Serializable은 SSI 방식으로 트랜잭션 간 의존 관계를 추적하는
+추가 작업이 발생해 TPS가 낮고 Latency가 높다.
 
 ## 결론
 
-- 정원 초과 방지 목적이라면 `ON CONFLICT DO NOTHING` 설계 하에서 두 격리 수준 모두 데이터 무결성을 지킬 수 있다.
+- 정원 초과 방지 목적이라면 `ON CONFLICT DO NOTHING` 설계 하에서
+  두 격리 수준 모두 데이터 무결성을 지킬 수 있다.
 - 순수 성능 측면에서 Read Committed가 약 28~30% 유리하다.
-- `ON CONFLICT` 없이 엄격한 충돌 감지를 DB에 위임하는 구조라면 Serializable의 Abort율 차이가 더 명확하게 나타날 것으로 예상된다.
+- `ON CONFLICT` 없이 엄격한 충돌 감지를 DB에 위임하는 구조라면
+  Serializable의 Abort율 차이가 더 명확하게 나타날 것으로 예상된다.
 
 원본 결과 파일: `benchmark/results/20260610_171330/`
