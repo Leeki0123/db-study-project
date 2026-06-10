@@ -10,30 +10,24 @@
 ## Abort율 0%에 대하여
 
 두 격리 수준 모두 Abort율이 0%로 측정됐다.
-이는 워크로드 SQL의 설계 방식 때문이다.
 
-**원인 1 — 조건부 INSERT**
+**`ON CONFLICT DO NOTHING`의 역할**
 
-```sql
-WHERE cm.member_count < tg.max_members
-  AND NOT EXISTS (
-      SELECT 1 FROM study_members sm
-      WHERE sm.group_id = :group_id AND sm.user_id = :user_id
-  )
-```
-
-정원 초과와 중복 참여를 INSERT 실행 전에 걸러낸다.
-조건이 거짓이면 INSERT 자체가 실행되지 않으므로 트랜잭션은 항상 성공한다.
-
-**원인 2 — `ON CONFLICT DO NOTHING`**
-
-경쟁 조건에서 복합 PK `(group_id, user_id)` 충돌이 발생하더라도
-에러가 아닌 무시(skip)로 처리된다.
+복합 PK `(group_id, user_id)` 충돌이 발생하더라도 에러 없이 무시(skip)된다.
 pgbench 입장에서 이 트랜잭션은 실패가 아니다.
 
-이 두 장치 덕분에 Serializable 격리 수준에서도 Abort율 수치 차이가 나타나지 않는다.
-그러나 Serializable의 SSI(Serializable Snapshot Isolation) 처리 오버헤드는
-TPS 감소(약 28~30%)로 확인된다.
+**Abort율 0%의 한계**
+
+워크로드 SQL은 `member_count < max_members` 판정을 잠금 없이 읽는다.
+따라서 ON CONFLICT는 중복 사용자를 막을 뿐, 정원 경쟁 조건 자체를 제거하지는 않는다.
+Read Committed에서는 두 트랜잭션이 동시에 정원 여유를 확인하고 모두 INSERT하면
+정원 초과가 발생할 수 있으며, 이 경우에도 Abort 없이 진행된다.
+Serializable(SSI)도 이 특정 워크로드에서 직렬화 충돌을 감지하지 못했기 때문에
+두 격리 수준 모두 Abort율 0%가 나온 것이다.
+
+결론적으로 Abort율 0%는 "두 격리 수준이 동일하게 안전하다"는 의미가 아니라,
+이 워크로드 설계에서 충돌이 DB 오류로 표면화되지 않았다는 의미다.
+Serializable의 SSI 오버헤드는 Abort가 아닌 TPS 감소(약 28~30%)로 나타난다.
 
 ## 전체 결과
 

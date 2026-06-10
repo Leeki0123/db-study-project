@@ -171,34 +171,47 @@ router.patch(
       );
     }
 
-    const currentState = await query(
-      `
-        SELECT
-          g.group_id,
-          COUNT(sm.user_id)::int AS member_count
-        FROM study_groups g
-        LEFT JOIN study_members sm ON sm.group_id = g.group_id
-        WHERE g.group_id = $1
-        GROUP BY g.group_id
-      `,
-      [groupId]
-    );
+    const client = await pool.connect();
 
-    if (currentState.rowCount === 0) {
-      throw httpError(404, "Study group not found.");
-    }
+    let updateResult;
 
-    if (
-      parsedMaxMembers !== null &&
-      parsedMaxMembers < currentState.rows[0].member_count
-    ) {
-      throw httpError(
-        400,
-        "maxMembers cannot be smaller than the current member count."
+    try {
+      await client.query("BEGIN");
+
+      const lockResult = await client.query(
+        `
+          SELECT group_id
+          FROM study_groups
+          WHERE group_id = $1
+          FOR UPDATE
+        `,
+        [groupId]
       );
-    }
 
-    const updateResult = await query(
+      if (lockResult.rowCount === 0) {
+        throw httpError(404, "Study group not found.");
+      }
+
+      const currentState = await client.query(
+        `
+          SELECT COUNT(user_id)::int AS member_count
+          FROM study_members
+          WHERE group_id = $1
+        `,
+        [groupId]
+      );
+
+      if (
+        parsedMaxMembers !== null &&
+        parsedMaxMembers < currentState.rows[0].member_count
+      ) {
+        throw httpError(
+          400,
+          "maxMembers cannot be smaller than the current member count."
+        );
+      }
+
+      updateResult = await client.query(
       `
         UPDATE study_groups
         SET
@@ -214,13 +227,21 @@ router.patch(
           max_members AS "maxMembers",
           created_at AS "createdAt"
       `,
-      [
-        groupId,
-        title ?? null,
-        description ?? null,
-        parsedMaxMembers
-      ]
-    );
+        [
+          groupId,
+          title ?? null,
+          description ?? null,
+          parsedMaxMembers
+        ]
+      );
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
 
     res.json(updateResult.rows[0]);
   })
